@@ -2,6 +2,12 @@ import { NewsArticle, Category } from '../types/news';
 import { fetchMediaStackArticles, searchMediaStackArticles } from './mediaStackApi';
 import { fetchNewsApiArticles, searchNewsApiArticles } from './newsApiService';
 import { fetchGuardianArticles, searchGuardianArticles } from './guardianApiService';
+import {
+  getMockArticlesBySource,
+  getMockArticlesByCategory,
+  getTrendingMockArticles,
+  searchMockArticles
+} from '../data/enhancedMockData';
 
 // API selection and fallback configuration
 export enum NewsApiSource {
@@ -9,6 +15,9 @@ export enum NewsApiSource {
   NEWSAPI = 'newsapi',
   GUARDIAN = 'guardian'
 }
+
+// Flag to use mock data instead of real APIs (due to CORS issues)
+const USE_MOCK_DATA = true;
 
 // Default order of APIs to try
 const API_PRIORITY: NewsApiSource[] = [
@@ -37,12 +46,40 @@ export const fetchArticlesFromAllSources = async (
   apiPriority: NewsApiSource[] = API_PRIORITY
 ): Promise<NewsArticle[]> => {
   console.log(`Fetching articles from multiple sources for category: ${category || 'all'}`);
-  
-  // Try each API in order until we get results
+
+  // If using mock data, return mock articles instead of making API calls
+  if (USE_MOCK_DATA) {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 300));
+
+    if (category) {
+      console.log(`Using mock data for category: ${category}`);
+      const mockArticles = getMockArticlesByCategory(category);
+      return mockArticles.slice(0, limit);
+    } else {
+      // Get articles from all mock sources
+      console.log('Using mock data for all categories');
+      let allMockArticles: NewsArticle[] = [];
+
+      for (const source of apiPriority) {
+        const sourceArticles = getMockArticlesBySource(source);
+        allMockArticles = [...allMockArticles, ...sourceArticles];
+
+        // Store in latest articles cache
+        latestArticles[source] = sourceArticles;
+      }
+
+      // Shuffle and limit
+      const shuffled = [...allMockArticles].sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, limit);
+    }
+  }
+
+  // If not using mock data, try each API in order until we get results
   for (const apiSource of apiPriority) {
     try {
       let articles: NewsArticle[] = [];
-      
+
       switch (apiSource) {
         case NewsApiSource.MEDIASTACK:
           console.log('Trying MediaStack API...');
@@ -57,13 +94,13 @@ export const fetchArticlesFromAllSources = async (
           articles = await fetchGuardianArticles(category, limit);
           break;
       }
-      
+
       if (articles.length > 0) {
         console.log(`Successfully fetched ${articles.length} articles from ${apiSource}`);
-        
+
         // Store the latest articles from this source
         latestArticles[apiSource] = articles;
-        
+
         return articles;
       }
     } catch (error) {
@@ -71,7 +108,7 @@ export const fetchArticlesFromAllSources = async (
       // Continue to the next API source
     }
   }
-  
+
   console.warn('All API sources failed, returning empty array');
   return [];
 };
@@ -89,12 +126,24 @@ export const searchArticlesFromAllSources = async (
   apiPriority: NewsApiSource[] = API_PRIORITY
 ): Promise<NewsArticle[]> => {
   console.log(`Searching articles from multiple sources for query: ${query}`);
-  
-  // Try each API in order until we get results
+
+  // If using mock data, return mock search results instead of making API calls
+  if (USE_MOCK_DATA) {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 300));
+
+    console.log(`Using mock data for search query: ${query}`);
+    const searchResults = searchMockArticles(query);
+
+    // Limit results
+    return searchResults.slice(0, limit);
+  }
+
+  // If not using mock data, try each API in order until we get results
   for (const apiSource of apiPriority) {
     try {
       let articles: NewsArticle[] = [];
-      
+
       switch (apiSource) {
         case NewsApiSource.MEDIASTACK:
           console.log('Trying MediaStack API search...');
@@ -109,7 +158,7 @@ export const searchArticlesFromAllSources = async (
           articles = await searchGuardianArticles(query, limit);
           break;
       }
-      
+
       if (articles.length > 0) {
         console.log(`Successfully found ${articles.length} articles from ${apiSource} for query: ${query}`);
         return articles;
@@ -119,7 +168,7 @@ export const searchArticlesFromAllSources = async (
       // Continue to the next API source
     }
   }
-  
+
   console.warn('All API sources failed for search, returning empty array');
   return [];
 };
@@ -131,15 +180,27 @@ export const searchArticlesFromAllSources = async (
  */
 export const fetchTrendingFromAllSources = async (limit: number = 5): Promise<NewsArticle[]> => {
   console.log('Fetching trending articles from all sources');
-  
-  // Collect all articles from all sources
+
+  // If using mock data, return mock trending articles instead of making API calls
+  if (USE_MOCK_DATA) {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 300));
+
+    console.log('Using mock data for trending articles');
+    const trendingArticles = getTrendingMockArticles();
+
+    // Limit results
+    return trendingArticles.slice(0, limit);
+  }
+
+  // If not using mock data, collect all articles from all sources
   const allArticles: NewsArticle[] = [];
-  
+
   // Try to get articles from each source
   for (const apiSource of API_PRIORITY) {
     try {
       let articles: NewsArticle[] = [];
-      
+
       switch (apiSource) {
         case NewsApiSource.MEDIASTACK:
           articles = await fetchMediaStackArticles(undefined, limit * 2);
@@ -151,33 +212,33 @@ export const fetchTrendingFromAllSources = async (limit: number = 5): Promise<Ne
           articles = await fetchGuardianArticles(undefined, limit * 2);
           break;
       }
-      
+
       // Add source identifier to each article
       articles.forEach(article => {
         article.apiSource = apiSource;
       });
-      
+
       allArticles.push(...articles);
-      
+
       // Store the latest articles from this source
       latestArticles[apiSource] = articles;
-      
+
     } catch (error) {
       console.error(`Error fetching trending from ${apiSource}:`, error);
       // Continue to the next API source
     }
   }
-  
+
   // Filter for trending articles
   const trendingArticles = allArticles.filter(article => article.trending);
-  
+
   // If we don't have enough trending articles, add some non-trending ones
   if (trendingArticles.length < limit) {
     const nonTrending = allArticles.filter(article => !article.trending);
     const shuffled = [...nonTrending].sort(() => 0.5 - Math.random());
     trendingArticles.push(...shuffled.slice(0, limit - trendingArticles.length));
   }
-  
+
   // Shuffle and limit
   const shuffled = [...trendingArticles].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, limit);
@@ -188,6 +249,15 @@ export const fetchTrendingFromAllSources = async (limit: number = 5): Promise<Ne
  * @returns Record<NewsApiSource, NewsArticle[]> - Latest articles by source
  */
 export const getLatestArticlesBySource = (): Record<NewsApiSource, NewsArticle[]> => {
+  // If using mock data, populate with mock articles if empty
+  if (USE_MOCK_DATA) {
+    if (Object.values(latestArticles).flat().length === 0) {
+      for (const source of API_PRIORITY) {
+        latestArticles[source] = getMockArticlesBySource(source);
+      }
+    }
+  }
+
   return latestArticles;
 };
 
@@ -196,5 +266,11 @@ export const getLatestArticlesBySource = (): Record<NewsApiSource, NewsArticle[]
  * @returns NewsArticle[] - All latest articles
  */
 export const getAllLatestArticles = (): NewsArticle[] => {
+  // If using mock data, return mock articles
+  if (USE_MOCK_DATA) {
+    // Make sure latestArticles is populated
+    getLatestArticlesBySource();
+  }
+
   return Object.values(latestArticles).flat();
 };
