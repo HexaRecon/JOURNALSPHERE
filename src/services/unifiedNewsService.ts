@@ -6,15 +6,9 @@ import {
   getMockArticlesBySource,
   getMockArticlesByCategory,
   getTrendingMockArticles,
-  searchMockArticles
+  searchMockArticles,
+  NewsApiSource
 } from '../data/enhancedMockData';
-
-// API selection and fallback configuration
-export enum NewsApiSource {
-  MEDIASTACK = 'mediastack',
-  NEWSAPI = 'newsapi',
-  GUARDIAN = 'guardian'
-}
 
 // Flag to use mock data instead of real APIs (due to CORS issues)
 const USE_MOCK_DATA = true;

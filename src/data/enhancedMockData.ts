@@ -1,6 +1,12 @@
 import { NewsArticle, Category } from '../types/news';
 import { v4 as uuidv4 } from 'uuid';
-import { NewsApiSource } from '../services/unifiedNewsService';
+
+// Define the NewsApiSource enum directly in this file to avoid circular dependencies
+export enum NewsApiSource {
+  MEDIASTACK = 'mediastack',
+  NEWSAPI = 'newsapi',
+  GUARDIAN = 'guardian'
+}
 
 // Map of category to reliable fallback images
 const categoryImages: Record<string, string> = {
@@ -234,7 +240,7 @@ export const getRelatedMockArticles = (
   const related = getAllMockArticles().filter(
     article => article.id !== currentArticleId && article.categories.includes(category)
   );
-  
+
   // Shuffle and limit
   const shuffled = [...related].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, limit);
