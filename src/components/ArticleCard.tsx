@@ -74,6 +74,11 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
             Journal
           </Badge>
         )}
+        {article.apiSource && (
+          <Badge className="absolute bottom-2 left-2 bg-gray-700">
+            {article.apiSource}
+          </Badge>
+        )}
       </div>
 
       <CardContent className="flex-grow pt-4">
