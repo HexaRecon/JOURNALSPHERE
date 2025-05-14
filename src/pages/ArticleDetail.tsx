@@ -10,6 +10,7 @@ import { useBookmarks } from '../contexts/BookmarkContext';
 import { useNavigate } from 'react-router-dom';
 import { AspectRatio } from '../components/ui/aspect-ratio';
 import { fetchArticleById, fetchRelatedArticles } from '../services/newsService';
+import Logo from '../components/Logo';
 import { toast } from '../components/ui/sonner';
 
 const ArticleDetail: React.FC = () => {
@@ -94,11 +95,12 @@ const ArticleDetail: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto py-8 px-4">
-        <div className="mb-6">
+        <div className="mb-6 flex justify-between items-center">
           <Link to="/" className="flex items-center text-news-blue-medium hover:text-news-blue-dark">
             <ArrowLeft size={18} className="mr-2" />
-            Back to JournalSphere
+            Back to Home
           </Link>
+          <Logo size="small" />
         </div>
 
         <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">

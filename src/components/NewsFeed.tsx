@@ -7,6 +7,7 @@ import { fetchAllArticles, fetchArticlesByCategory, fetchTrendingArticles, searc
 import NewsFilters from './NewsFilters';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import BookmarkedArticles from './BookmarkedArticles';
+import Logo from './Logo';
 import { toast } from '../components/ui/sonner';
 
 const NewsFeed: React.FC = () => {
@@ -116,7 +117,9 @@ const NewsFeed: React.FC = () => {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-news-blue-dark mb-2">JournalSphere</h1>
+        <div className="mb-2">
+          <Logo size="large" />
+        </div>
         <p className="text-gray-600">Discover thoughtful journal entries and news across various categories</p>
       </div>
 
