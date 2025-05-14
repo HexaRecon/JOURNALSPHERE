@@ -47,9 +47,13 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
           alt={article.title}
           title={article.categories.includes('journal') ? `Journal image related to ${article.title.split(':')[0].replace('Daily', '').trim().toLowerCase()}` : article.title}
           className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+          loading="lazy"
           onError={(e) => {
             // Fallback image if the original fails to load
+            console.log('Image failed to load, using fallback');
             e.currentTarget.src = 'https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=1000&auto=format&fit=crop';
+            // Prevent infinite error loop if fallback also fails
+            e.currentTarget.onerror = null;
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300">

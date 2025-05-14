@@ -88,7 +88,8 @@ const THEMED_JOURNAL_IMAGES: ThemeImage[] = [
 const DEFAULT_JOURNAL_IMAGE = 'https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=1000&auto=format&fit=crop';
 
 // API endpoint for quotes that we'll use as journal entries
-const QUOTES_API_URL = 'https://api.quotable.io/quotes/random?limit=5';
+// Using a CORS proxy to avoid CORS issues
+const QUOTES_API_URL = 'https://corsproxy.io/?https://api.quotable.io/quotes/random?limit=5';
 
 // Store the last fetched timestamp to track updates
 let lastFetchTimestamp = 0;
@@ -96,6 +97,95 @@ let lastFetchTimestamp = 0;
 // Event emitter for article updates
 type ArticleUpdateListener = (articles: NewsArticle[]) => void;
 const articleUpdateListeners: ArticleUpdateListener[] = [];
+
+/**
+ * Generates fallback journal entries when the API fails
+ * @returns NewsArticle[] - Array of fallback journal entries
+ */
+const generateFallbackJournalEntries = (): NewsArticle[] => {
+  const fallbackEntries: NewsArticle[] = [
+    {
+      id: uuidv4(),
+      title: 'Daily Resilience: Overcoming Challenges',
+      source: 'Daily Journal',
+      author: 'James Wilson',
+      publishedAt: new Date().toISOString(),
+      summary: 'Building resilience helps us navigate life\'s obstacles with grace and determination.',
+      content: `
+Today's journal entry focuses on resilience through a profound thought: "Resilience is not about never falling down, but about rising every time we fall."
+
+This quote speaks to the essence of resilience and invites us to consider how our ability to recover from setbacks defines our character more than avoiding difficulties altogether. When we embrace resilience, we open ourselves to growth through challenges.
+
+How we might apply this insight:
+
+1. Consider how resilience appears in your current circumstances
+2. Reflect on a time when you bounced back from a significant setback
+3. Identify one small action you can take today to strengthen your resilience
+4. Share this perspective with someone who might be facing difficulties
+
+The journey of personal growth often involves these moments of clarity where timeless wisdom meets our present reality.
+      `,
+      imageUrl: 'https://images.unsplash.com/photo-1520116468816-95b69f847357?q=80&w=800&auto=format&fit=crop',
+      url: 'https://example.com/journal/resilience',
+      categories: ['journal'],
+      trending: true,
+    },
+    {
+      id: uuidv4(),
+      title: 'Daily Creativity: Embracing Innovation',
+      source: 'Daily Journal',
+      author: 'Sophia Chen',
+      publishedAt: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString(),
+      summary: 'Creativity allows us to see new possibilities and solutions in everyday life.',
+      content: `
+Today's journal entry focuses on creativity through a profound thought: "Creativity is intelligence having fun."
+
+This quote speaks to the essence of creativity and invites us to consider how creative thinking is not separate from analytical thinking but rather a playful expression of it. When we embrace creativity, we unlock new ways of solving problems.
+
+How we might apply this insight:
+
+1. Consider how creativity appears in your current circumstances
+2. Reflect on a time when a creative approach led to an unexpected solution
+3. Identify one small action you can take today to nurture your creative thinking
+4. Share this perspective with someone who might benefit from thinking more creatively
+
+The journey of personal growth often involves these moments of clarity where timeless wisdom meets our present reality.
+      `,
+      imageUrl: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=800&auto=format&fit=crop',
+      url: 'https://example.com/journal/creativity',
+      categories: ['journal'],
+      trending: false,
+    },
+    {
+      id: uuidv4(),
+      title: 'Daily Patience: The Art of Waiting',
+      source: 'Daily Journal',
+      author: 'Marcus Johnson',
+      publishedAt: new Date(new Date().setDate(new Date().getDate() - 2)).toISOString(),
+      summary: 'Patience allows us to endure difficult times and appreciate the journey.',
+      content: `
+Today's journal entry focuses on patience through a profound thought: "Patience is not the ability to wait, but the ability to keep a good attitude while waiting."
+
+This quote speaks to the essence of patience and invites us to consider how our mindset during periods of waiting is more important than the waiting itself. When we embrace patience, we find peace in the present moment.
+
+How we might apply this insight:
+
+1. Consider how patience appears in your current circumstances
+2. Reflect on a time when patience led to a better outcome than rushing
+3. Identify one small action you can take today to practice patience
+4. Share this perspective with someone who might be in a period of waiting
+
+The journey of personal growth often involves these moments of clarity where timeless wisdom meets our present reality.
+      `,
+      imageUrl: 'https://images.unsplash.com/photo-1485395578879-6ba080c9cdba?q=80&w=800&auto=format&fit=crop',
+      url: 'https://example.com/journal/patience',
+      categories: ['journal'],
+      trending: false,
+    }
+  ];
+
+  return fallbackEntries;
+};
 
 // Interface for the quote API response
 interface QuoteResponse {
@@ -129,10 +219,52 @@ export const fetchDailyJournalEntries = async (): Promise<NewsArticle[]> => {
 
     // If no cached entries for today, fetch new ones
     console.log('Fetching fresh journal entries for today');
-    const response = await fetch(QUOTES_API_URL);
 
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
+    // Fetch with timeout and retry logic
+    let response;
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+      try {
+        // Add timeout to fetch request
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+        response = await fetch(QUOTES_API_URL, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          break; // Success, exit the retry loop
+        }
+
+        console.warn(`API request attempt ${retryCount + 1} failed with status ${response.status}`);
+        retryCount++;
+
+        // Wait before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+      } catch (error) {
+        console.warn(`API request attempt ${retryCount + 1} failed with error:`, error);
+        retryCount++;
+
+        // If it's the last retry, rethrow the error
+        if (retryCount >= maxRetries) {
+          throw error;
+        }
+
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error(`API request failed after ${maxRetries} attempts`);
     }
 
     const quotes: QuoteResponse[] = await response.json();
@@ -160,7 +292,9 @@ export const fetchDailyJournalEntries = async (): Promise<NewsArticle[]> => {
       }
     }
 
-    return [];
+    // If no cached entries, return fallback entries
+    console.log('Using fallback journal entries');
+    return generateFallbackJournalEntries();
   }
 };
 
@@ -405,11 +539,51 @@ export const checkForNewArticles = async (): Promise<boolean> => {
       cachedEntries = entries || [];
     }
 
-    // Fetch the latest entries from the API
-    const response = await fetch(QUOTES_API_URL);
+    // Fetch the latest entries from the API with timeout and retry logic
+    let response;
+    let retryCount = 0;
+    const maxRetries = 3;
 
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
+    while (retryCount < maxRetries) {
+      try {
+        // Add timeout to fetch request
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+        response = await fetch(QUOTES_API_URL, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          break; // Success, exit the retry loop
+        }
+
+        console.warn(`API request attempt ${retryCount + 1} failed with status ${response.status}`);
+        retryCount++;
+
+        // Wait before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+      } catch (error) {
+        console.warn(`API request attempt ${retryCount + 1} failed with error:`, error);
+        retryCount++;
+
+        // If it's the last retry, rethrow the error
+        if (retryCount >= maxRetries) {
+          throw error;
+        }
+
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error(`API request failed after ${maxRetries} attempts`);
     }
 
     const quotes: QuoteResponse[] = await response.json();

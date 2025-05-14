@@ -108,9 +108,13 @@ const ArticleDetail: React.FC = () => {
               alt={article.title}
               title={article.categories.includes('journal') ? `Journal image related to ${article.title.split(':')[0].replace('Daily', '').trim().toLowerCase()}` : article.title}
               className="w-full h-full object-cover"
+              loading="lazy"
               onError={(e) => {
                 // Fallback image if the original fails to load
+                console.log('Image failed to load, using fallback');
                 e.currentTarget.src = 'https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=1000&auto=format&fit=crop';
+                // Prevent infinite error loop if fallback also fails
+                e.currentTarget.onerror = null;
               }}
             />
             <div className="absolute top-4 right-4 flex flex-col gap-2">
@@ -192,9 +196,13 @@ const ArticleDetail: React.FC = () => {
                       alt={relArticle.title}
                       title={relArticle.categories.includes('journal') ? `Journal image related to ${relArticle.title.split(':')[0].replace('Daily', '').trim().toLowerCase()}` : relArticle.title}
                       className="w-full h-full object-cover"
+                      loading="lazy"
                       onError={(e) => {
                         // Fallback image if the original fails to load
+                        console.log('Related image failed to load, using fallback');
                         e.currentTarget.src = 'https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=1000&auto=format&fit=crop';
+                        // Prevent infinite error loop if fallback also fails
+                        e.currentTarget.onerror = null;
                       }}
                     />
                     {relArticle.categories.includes('journal') && (
