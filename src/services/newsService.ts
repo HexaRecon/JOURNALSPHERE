@@ -1,9 +1,14 @@
 import { NewsArticle, Category } from '../types/news';
 import { getAllArticles, getArticlesByCategory, getTrendingArticles, searchArticles, getArticleById, getRelatedArticles } from '../data/mockNewsData';
 import { fetchDailyJournalEntries, fetchJournalEntryById, subscribeToArticleUpdates, checkForNewArticles } from './journalApi';
+import { fetchMediaStackArticles, searchMediaStackArticles } from './mediaStackApi';
+
+// Flag to use MediaStack API instead of mock data
+const USE_MEDIASTACK_API = true;
 
 // Store the latest articles for real-time updates
 let latestArticles: NewsArticle[] = [];
+let latestMediaStackArticles: NewsArticle[] = [];
 
 // Event emitter for article updates
 type ArticleUpdateListener = (articles: NewsArticle[]) => void;
@@ -12,7 +17,11 @@ const articleUpdateListeners: ArticleUpdateListener[] = [];
 // Subscribe to journal API updates
 subscribeToArticleUpdates((newJournalArticles) => {
   // Update our latest articles
-  latestArticles = [...getAllArticles(), ...newJournalArticles];
+  if (USE_MEDIASTACK_API) {
+    latestArticles = [...latestMediaStackArticles, ...newJournalArticles];
+  } else {
+    latestArticles = [...getAllArticles(), ...newJournalArticles];
+  }
 
   // Notify our listeners
   notifyArticleUpdateListeners(latestArticles);
@@ -128,14 +137,26 @@ export const fetchAllArticles = async (forceRefresh: boolean = false): Promise<N
       return latestArticles;
     }
 
-    // Get mock articles
-    const mockArticles = getAllArticles();
-
     // Get journal articles from API
     const journalArticles = await fetchDailyJournalEntries();
 
-    // Update our latest articles cache
-    latestArticles = [...mockArticles, ...journalArticles];
+    if (USE_MEDIASTACK_API) {
+      // Get news articles from MediaStack API
+      console.log('Fetching articles from MediaStack API');
+      const mediaStackArticles = await fetchMediaStackArticles(undefined, 20);
+
+      // Cache the MediaStack articles
+      latestMediaStackArticles = mediaStackArticles;
+
+      // Update our latest articles cache
+      latestArticles = [...mediaStackArticles, ...journalArticles];
+    } else {
+      // Get mock articles
+      const mockArticles = getAllArticles();
+
+      // Update our latest articles cache
+      latestArticles = [...mockArticles, ...journalArticles];
+    }
 
     // Combine and return all articles
     return latestArticles;
@@ -162,8 +183,12 @@ export const fetchArticlesByCategory = async (category: Category): Promise<NewsA
     if (category === 'journal') {
       // For journal category, fetch from API
       return await fetchDailyJournalEntries();
+    } else if (USE_MEDIASTACK_API) {
+      // For other categories, use MediaStack API
+      console.log(`Fetching ${category} articles from MediaStack API`);
+      return await fetchMediaStackArticles(category, 20);
     } else {
-      // For other categories, use mock data
+      // Use mock data if not using MediaStack API
       return getArticlesByCategory(category);
     }
   } catch (error) {
@@ -179,15 +204,31 @@ export const fetchArticlesByCategory = async (category: Category): Promise<NewsA
  */
 export const fetchTrendingArticles = async (): Promise<NewsArticle[]> => {
   try {
-    // Get mock trending articles
-    const mockTrending = getTrendingArticles();
-
     // Get journal articles and filter for trending ones
     const journalArticles = await fetchDailyJournalEntries();
     const trendingJournalArticles = journalArticles.filter(article => article.trending);
 
-    // Combine and return
-    return [...mockTrending, ...trendingJournalArticles];
+    if (USE_MEDIASTACK_API) {
+      // If we have cached MediaStack articles, filter for trending ones
+      if (latestMediaStackArticles.length > 0) {
+        const trendingMediaStackArticles = latestMediaStackArticles.filter(article => article.trending);
+        return [...trendingMediaStackArticles, ...trendingJournalArticles];
+      }
+
+      // Otherwise fetch all articles and then filter
+      const allArticles = await fetchAllArticles(true);
+      const trendingArticles = allArticles.filter(
+        article => article.trending && article.categories[0] !== 'journal'
+      );
+
+      return [...trendingArticles, ...trendingJournalArticles];
+    } else {
+      // Get mock trending articles
+      const mockTrending = getTrendingArticles();
+
+      // Combine and return
+      return [...mockTrending, ...trendingJournalArticles];
+    }
   } catch (error) {
     console.error('Error fetching trending articles:', error);
     // Fallback to mock data
@@ -202,9 +243,6 @@ export const fetchTrendingArticles = async (): Promise<NewsArticle[]> => {
  */
 export const searchAllArticles = async (query: string): Promise<NewsArticle[]> => {
   try {
-    // Get mock search results
-    const mockResults = searchArticles(query);
-
     // Get journal articles
     const journalArticles = await fetchDailyJournalEntries();
 
@@ -216,8 +254,20 @@ export const searchAllArticles = async (query: string): Promise<NewsArticle[]> =
         article.summary.toLowerCase().includes(searchTerm)
     );
 
-    // Combine and return
-    return [...mockResults, ...journalResults];
+    if (USE_MEDIASTACK_API) {
+      // Search MediaStack API
+      console.log(`Searching MediaStack API for: ${query}`);
+      const mediaStackResults = await searchMediaStackArticles(query, 10);
+
+      // Combine and return
+      return [...mediaStackResults, ...journalResults];
+    } else {
+      // Get mock search results
+      const mockResults = searchArticles(query);
+
+      // Combine and return
+      return [...mockResults, ...journalResults];
+    }
   } catch (error) {
     console.error('Error searching articles:', error);
     // Fallback to mock data
@@ -232,20 +282,38 @@ export const searchAllArticles = async (query: string): Promise<NewsArticle[]> =
  */
 export const fetchArticleById = async (id: string): Promise<NewsArticle | null> => {
   try {
-    // First check mock data
-    const mockArticle = getArticleById(id);
-    if (mockArticle) {
-      return mockArticle;
+    // Check if the article is in our latest articles cache
+    const cachedArticle = latestArticles.find(article => article.id === id);
+    if (cachedArticle) {
+      return cachedArticle;
     }
 
-    // If not found in mock data, check journal API
+    // Check if it's a journal article
     const journalArticle = await fetchJournalEntryById(id);
-    return journalArticle;
+    if (journalArticle) {
+      return journalArticle;
+    }
+
+    if (!USE_MEDIASTACK_API) {
+      // If not using MediaStack API, check mock data
+      const mockArticle = getArticleById(id);
+      if (mockArticle) {
+        return mockArticle;
+      }
+    }
+
+    // If we couldn't find the article, return null
+    return null;
   } catch (error) {
     console.error('Error fetching article by ID:', error);
+
     // Fallback to mock data only
-    const mockArticle = getArticleById(id);
-    return mockArticle || null;
+    if (!USE_MEDIASTACK_API) {
+      const mockArticle = getArticleById(id);
+      return mockArticle || null;
+    }
+
+    return null;
   }
 };
 
@@ -270,8 +338,34 @@ export const fetchRelatedArticles = async (
       // Shuffle and limit
       const shuffled = [...related].sort(() => 0.5 - Math.random());
       return shuffled.slice(0, limit);
+    } else if (USE_MEDIASTACK_API) {
+      // For other categories with MediaStack API
+
+      // First check if we have enough articles in our cache
+      if (latestMediaStackArticles.length > limit + 1) {
+        const relatedArticles = latestMediaStackArticles.filter(
+          article => article.id !== currentArticleId && article.categories.includes(category)
+        );
+
+        if (relatedArticles.length >= limit) {
+          // Shuffle and limit
+          const shuffled = [...relatedArticles].sort(() => 0.5 - Math.random());
+          return shuffled.slice(0, limit);
+        }
+      }
+
+      // If we don't have enough in cache, fetch fresh articles for this category
+      console.log(`Fetching related ${category} articles from MediaStack API`);
+      const categoryArticles = await fetchMediaStackArticles(category, limit + 1);
+
+      // Filter out the current article
+      const related = categoryArticles.filter(article => article.id !== currentArticleId);
+
+      // Shuffle and limit
+      const shuffled = [...related].sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, limit);
     } else {
-      // For other categories, use mock data
+      // For other categories with mock data
       return getRelatedArticles(currentArticleId, category, limit);
     }
   } catch (error) {
