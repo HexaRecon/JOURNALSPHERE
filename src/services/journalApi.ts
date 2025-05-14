@@ -31,55 +31,55 @@ const THEMED_JOURNAL_IMAGES: ThemeImage[] = [
   {
     theme: 'growth',
     keywords: ['develop', 'improve', 'progress', 'evolve', 'learn', 'journey', 'potential'],
-    imageUrl: 'https://images.unsplash.com/photo-1549576490-b0b4831ef60a?q=80&w=1000&auto=format&fit=crop',
+    imageUrl: 'https://cdn.pixabay.com/photo/2017/03/29/15/18/timelapse-2185605_1280.jpg',
     description: 'New plant sprouting from soil, representing personal growth'
   },
   {
     theme: 'reflection',
     keywords: ['reflect', 'contemplate', 'introspection', 'thought', 'consider', 'ponder', 'examine'],
-    imageUrl: 'https://images.unsplash.com/photo-1500462918059-b1a0cb512f1d?q=80&w=1000&auto=format&fit=crop',
+    imageUrl: 'https://cdn.pixabay.com/photo/2016/11/14/04/36/boy-1822614_1280.jpg',
     description: 'Person looking at reflection in calm water'
   },
   {
     theme: 'balance',
     keywords: ['equilibrium', 'harmony', 'stability', 'center', 'peace', 'moderation'],
-    imageUrl: 'https://images.unsplash.com/photo-1519834089823-af2d966a42c4?q=80&w=1000&auto=format&fit=crop',
+    imageUrl: 'https://cdn.pixabay.com/photo/2015/03/17/02/01/cubes-677092_1280.jpg',
     description: 'Balanced stones stacked on a beach at sunset'
   },
   {
     theme: 'wisdom',
     keywords: ['knowledge', 'insight', 'understanding', 'sage', 'philosophy', 'enlightenment', 'truth'],
-    imageUrl: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=1000&auto=format&fit=crop',
+    imageUrl: 'https://cdn.pixabay.com/photo/2015/11/06/11/45/book-1026890_1280.jpg',
     description: 'Open book with light illuminating the pages'
   },
   {
     theme: 'creativity',
     keywords: ['create', 'imagine', 'inspire', 'art', 'innovation', 'expression', 'original'],
-    imageUrl: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=1000&auto=format&fit=crop',
+    imageUrl: 'https://cdn.pixabay.com/photo/2016/01/19/17/57/paint-1149908_1280.jpg',
     description: 'Colorful art supplies and creative workspace'
   },
   {
     theme: 'courage',
     keywords: ['brave', 'strength', 'fearless', 'confidence', 'bold', 'daring', 'overcome'],
-    imageUrl: 'https://images.unsplash.com/photo-1520116468816-95b69f847357?q=80&w=1000&auto=format&fit=crop',
+    imageUrl: 'https://cdn.pixabay.com/photo/2016/11/08/05/15/adventure-1807524_1280.jpg',
     description: 'Person standing on mountain peak overlooking vast landscape'
   },
   {
     theme: 'connection',
     keywords: ['relationship', 'community', 'bond', 'together', 'unity', 'friendship', 'love'],
-    imageUrl: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?q=80&w=1000&auto=format&fit=crop',
+    imageUrl: 'https://cdn.pixabay.com/photo/2017/10/25/16/54/african-2888640_1280.jpg',
     description: 'People holding hands in unity and support'
   },
   {
     theme: 'simplicity',
     keywords: ['minimal', 'essential', 'clarity', 'focus', 'uncomplicated', 'basic'],
-    imageUrl: 'https://images.unsplash.com/photo-1473186505569-9c61870c11f9?q=80&w=1000&auto=format&fit=crop',
+    imageUrl: 'https://cdn.pixabay.com/photo/2015/07/09/22/45/tree-838667_1280.jpg',
     description: 'Minimalist scene with simple objects and clean lines'
   },
   {
     theme: 'resilience',
     keywords: ['endure', 'overcome', 'persevere', 'adapt', 'recover', 'strength', 'determination'],
-    imageUrl: 'https://images.unsplash.com/photo-1485236715568-ddc5ee6ca227?q=80&w=1000&auto=format&fit=crop',
+    imageUrl: 'https://cdn.pixabay.com/photo/2017/04/23/19/30/tree-2254979_1280.jpg',
     description: 'Plant growing through crack in concrete, symbolizing resilience'
   }
 ];
