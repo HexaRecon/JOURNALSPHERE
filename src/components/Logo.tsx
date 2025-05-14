@@ -16,35 +16,29 @@ const Logo: React.FC<LogoProps> = ({ className = '', size = 'medium' }) => {
 
   return (
     <Link to="/" className={`flex items-center ${className}`}>
-      <svg 
+      <svg
         className={`${sizeClasses[size]} mr-2`}
-        viewBox="0 0 512 512" 
-        fill="none" 
+        viewBox="0 0 512 512"
+        fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Book/Journal Base */}
-        <rect x="80" y="80" width="352" height="352" rx="20" fill="#4F46E5" />
-        
-        {/* Pages */}
-        <rect x="100" y="100" width="312" height="312" rx="10" fill="#F9FAFB" />
-        
-        {/* Lines representing text */}
-        <rect x="130" y="150" width="252" height="8" rx="4" fill="#D1D5DB" />
-        <rect x="130" y="180" width="200" height="8" rx="4" fill="#D1D5DB" />
-        <rect x="130" y="210" width="252" height="8" rx="4" fill="#D1D5DB" />
-        <rect x="130" y="240" width="180" height="8" rx="4" fill="#D1D5DB" />
-        <rect x="130" y="270" width="252" height="8" rx="4" fill="#D1D5DB" />
-        <rect x="130" y="300" width="220" height="8" rx="4" fill="#D1D5DB" />
-        <rect x="130" y="330" width="252" height="8" rx="4" fill="#D1D5DB" />
-        
-        {/* Bookmark */}
-        <path d="M350 100V160L330 140L310 160V100H350Z" fill="#9F7AEA" />
-        
+        {/* Heart shape */}
+        <path
+          d="M256 448l-30.164-27.211C118.718 322.442 48 258.61 48 179.095 48 114.221 97.918 64 162.4 64c36.399 0 70.717 16.742 93.6 43.947C278.882 80.742 313.199 64 349.6 64 414.082 64 464 114.221 464 179.095c0 79.516-70.719 143.348-177.836 241.694L256 448z"
+          fill="#E53E3E"
+        />
+
+        {/* Inner heart highlight */}
+        <path
+          d="M256 400l-25-22.5C147.5 297.5 89 244.5 89 179.1 89 124.5 130.5 84 186 84c24.5 0 49.9 12.5 70 36.5C277 96.5 302.5 84 327 84c55.5 0 97 40.5 97 95.1 0 65.4-58.5 118.4-142 198.4L256 400z"
+          fill="#FC8181"
+        />
+
         {/* Globe element representing "Sphere" */}
-        <circle cx="380" cy="380" r="60" fill="#4F46E5" stroke="#F9FAFB" strokeWidth="8" />
-        <ellipse cx="380" cy="380" rx="40" ry="60" stroke="#F9FAFB" strokeWidth="4" />
-        <line x1="320" y1="380" x2="440" y2="380" stroke="#F9FAFB" strokeWidth="4" />
-        <line x1="380" y1="320" x2="380" y2="440" stroke="#F9FAFB" strokeWidth="4" />
+        <circle cx="350" cy="350" r="60" fill="#4F46E5" stroke="#F9FAFB" strokeWidth="8" />
+        <ellipse cx="350" cy="350" rx="40" ry="60" stroke="#F9FAFB" strokeWidth="4" />
+        <line x1="290" y1="350" x2="410" y2="350" stroke="#F9FAFB" strokeWidth="4" />
+        <line x1="350" y1="290" x2="350" y2="410" stroke="#F9FAFB" strokeWidth="4" />
       </svg>
       <span className="font-bold text-news-blue-dark text-xl">JournalSphere</span>
     </Link>
