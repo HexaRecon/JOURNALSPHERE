@@ -1,14 +1,19 @@
 import { NewsArticle, Category } from '../types/news';
 import { getAllArticles, getArticlesByCategory, getTrendingArticles, searchArticles, getArticleById, getRelatedArticles } from '../data/mockNewsData';
 import { fetchDailyJournalEntries, fetchJournalEntryById, subscribeToArticleUpdates, checkForNewArticles } from './journalApi';
-import { fetchMediaStackArticles, searchMediaStackArticles } from './mediaStackApi';
+import {
+  fetchArticlesFromAllSources,
+  searchArticlesFromAllSources,
+  fetchTrendingFromAllSources,
+  getAllLatestArticles,
+  NewsApiSource
+} from './unifiedNewsService';
 
-// Flag to use MediaStack API instead of mock data
-const USE_MEDIASTACK_API = true;
+// Flag to use real APIs instead of mock data
+const USE_REAL_APIS = true;
 
 // Store the latest articles for real-time updates
 let latestArticles: NewsArticle[] = [];
-let latestMediaStackArticles: NewsArticle[] = [];
 
 // Event emitter for article updates
 type ArticleUpdateListener = (articles: NewsArticle[]) => void;
@@ -17,8 +22,10 @@ const articleUpdateListeners: ArticleUpdateListener[] = [];
 // Subscribe to journal API updates
 subscribeToArticleUpdates((newJournalArticles) => {
   // Update our latest articles
-  if (USE_MEDIASTACK_API) {
-    latestArticles = [...latestMediaStackArticles, ...newJournalArticles];
+  if (USE_REAL_APIS) {
+    // Get the latest articles from all API sources
+    const apiArticles = getAllLatestArticles();
+    latestArticles = [...apiArticles, ...newJournalArticles];
   } else {
     latestArticles = [...getAllArticles(), ...newJournalArticles];
   }
@@ -140,16 +147,13 @@ export const fetchAllArticles = async (forceRefresh: boolean = false): Promise<N
     // Get journal articles from API
     const journalArticles = await fetchDailyJournalEntries();
 
-    if (USE_MEDIASTACK_API) {
-      // Get news articles from MediaStack API
-      console.log('Fetching articles from MediaStack API');
-      const mediaStackArticles = await fetchMediaStackArticles(undefined, 20);
-
-      // Cache the MediaStack articles
-      latestMediaStackArticles = mediaStackArticles;
+    if (USE_REAL_APIS) {
+      // Get news articles from all API sources
+      console.log('Fetching articles from all API sources');
+      const apiArticles = await fetchArticlesFromAllSources(undefined, 20);
 
       // Update our latest articles cache
-      latestArticles = [...mediaStackArticles, ...journalArticles];
+      latestArticles = [...apiArticles, ...journalArticles];
     } else {
       // Get mock articles
       const mockArticles = getAllArticles();
@@ -183,12 +187,12 @@ export const fetchArticlesByCategory = async (category: Category): Promise<NewsA
     if (category === 'journal') {
       // For journal category, fetch from API
       return await fetchDailyJournalEntries();
-    } else if (USE_MEDIASTACK_API) {
-      // For other categories, use MediaStack API
-      console.log(`Fetching ${category} articles from MediaStack API`);
-      return await fetchMediaStackArticles(category, 20);
+    } else if (USE_REAL_APIS) {
+      // For other categories, use all API sources
+      console.log(`Fetching ${category} articles from all API sources`);
+      return await fetchArticlesFromAllSources(category, 20);
     } else {
-      // Use mock data if not using MediaStack API
+      // Use mock data if not using real APIs
       return getArticlesByCategory(category);
     }
   } catch (error) {
@@ -208,20 +212,13 @@ export const fetchTrendingArticles = async (): Promise<NewsArticle[]> => {
     const journalArticles = await fetchDailyJournalEntries();
     const trendingJournalArticles = journalArticles.filter(article => article.trending);
 
-    if (USE_MEDIASTACK_API) {
-      // If we have cached MediaStack articles, filter for trending ones
-      if (latestMediaStackArticles.length > 0) {
-        const trendingMediaStackArticles = latestMediaStackArticles.filter(article => article.trending);
-        return [...trendingMediaStackArticles, ...trendingJournalArticles];
-      }
+    if (USE_REAL_APIS) {
+      // Fetch trending articles from all API sources
+      console.log('Fetching trending articles from all API sources');
+      const trendingApiArticles = await fetchTrendingFromAllSources(5);
 
-      // Otherwise fetch all articles and then filter
-      const allArticles = await fetchAllArticles(true);
-      const trendingArticles = allArticles.filter(
-        article => article.trending && article.categories[0] !== 'journal'
-      );
-
-      return [...trendingArticles, ...trendingJournalArticles];
+      // Combine and return
+      return [...trendingApiArticles, ...trendingJournalArticles];
     } else {
       // Get mock trending articles
       const mockTrending = getTrendingArticles();
@@ -254,13 +251,13 @@ export const searchAllArticles = async (query: string): Promise<NewsArticle[]> =
         article.summary.toLowerCase().includes(searchTerm)
     );
 
-    if (USE_MEDIASTACK_API) {
-      // Search MediaStack API
-      console.log(`Searching MediaStack API for: ${query}`);
-      const mediaStackResults = await searchMediaStackArticles(query, 10);
+    if (USE_REAL_APIS) {
+      // Search all API sources
+      console.log(`Searching all API sources for: ${query}`);
+      const apiResults = await searchArticlesFromAllSources(query, 10);
 
       // Combine and return
-      return [...mediaStackResults, ...journalResults];
+      return [...apiResults, ...journalResults];
     } else {
       // Get mock search results
       const mockResults = searchArticles(query);
@@ -294,8 +291,8 @@ export const fetchArticleById = async (id: string): Promise<NewsArticle | null> 
       return journalArticle;
     }
 
-    if (!USE_MEDIASTACK_API) {
-      // If not using MediaStack API, check mock data
+    if (!USE_REAL_APIS) {
+      // If not using real APIs, check mock data
       const mockArticle = getArticleById(id);
       if (mockArticle) {
         return mockArticle;
@@ -308,7 +305,7 @@ export const fetchArticleById = async (id: string): Promise<NewsArticle | null> 
     console.error('Error fetching article by ID:', error);
 
     // Fallback to mock data only
-    if (!USE_MEDIASTACK_API) {
+    if (!USE_REAL_APIS) {
       const mockArticle = getArticleById(id);
       return mockArticle || null;
     }
@@ -338,13 +335,15 @@ export const fetchRelatedArticles = async (
       // Shuffle and limit
       const shuffled = [...related].sort(() => 0.5 - Math.random());
       return shuffled.slice(0, limit);
-    } else if (USE_MEDIASTACK_API) {
-      // For other categories with MediaStack API
+    } else if (USE_REAL_APIS) {
+      // For other categories with real APIs
 
       // First check if we have enough articles in our cache
-      if (latestMediaStackArticles.length > limit + 1) {
-        const relatedArticles = latestMediaStackArticles.filter(
-          article => article.id !== currentArticleId && article.categories.includes(category)
+      if (latestArticles.length > limit + 1) {
+        const relatedArticles = latestArticles.filter(
+          article => article.id !== currentArticleId &&
+                    article.categories.includes(category) &&
+                    article.categories[0] !== 'journal'
         );
 
         if (relatedArticles.length >= limit) {
@@ -355,8 +354,8 @@ export const fetchRelatedArticles = async (
       }
 
       // If we don't have enough in cache, fetch fresh articles for this category
-      console.log(`Fetching related ${category} articles from MediaStack API`);
-      const categoryArticles = await fetchMediaStackArticles(category, limit + 1);
+      console.log(`Fetching related ${category} articles from all API sources`);
+      const categoryArticles = await fetchArticlesFromAllSources(category, limit + 1);
 
       // Filter out the current article
       const related = categoryArticles.filter(article => article.id !== currentArticleId);

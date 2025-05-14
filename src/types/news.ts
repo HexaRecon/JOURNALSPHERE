@@ -22,4 +22,5 @@ export interface NewsArticle {
   url: string;
   categories: Category[];
   trending: boolean;
+  apiSource?: string; // The API source that provided this article
 }
