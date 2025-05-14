@@ -51,7 +51,8 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
           onError={(e) => {
             // Fallback image if the original fails to load
             console.log('Image failed to load, using fallback');
-            e.currentTarget.src = 'https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=1000&auto=format&fit=crop';
+            // Use a reliable fallback image from a CDN
+            e.currentTarget.src = 'https://cdn.pixabay.com/photo/2016/03/26/22/21/books-1281581_1280.jpg';
             // Prevent infinite error loop if fallback also fails
             e.currentTarget.onerror = null;
           }}
