@@ -5,6 +5,10 @@ import { v4 as uuidv4 } from 'uuid';
 const MEDIASTACK_API_KEY = '365d6c5a17119a9d5247d4e9b7534803';
 const MEDIASTACK_BASE_URL = 'https://api.mediastack.com/v1';
 
+// Use a CORS proxy to avoid CORS issues
+const USE_CORS_PROXY = true;
+const CORS_PROXY = 'https://corsproxy.org/?';
+
 // Category mapping from MediaStack to our app categories
 const categoryMapping: Record<string, Category> = {
   general: 'world',
@@ -67,34 +71,41 @@ export const fetchMediaStackArticles = async (
   try {
     // Build the API URL with parameters
     let url = `${MEDIASTACK_BASE_URL}/news?access_key=${MEDIASTACK_API_KEY}&languages=en&limit=${limit}`;
-    
+
     // Add category filter if provided
     if (category && category !== 'journal') {
       url += `&categories=${category}`;
     }
-    
+
     // Add sort parameter to get latest news
     url += '&sort=published_desc';
-    
+
+    // Add CORS proxy if needed
+    if (USE_CORS_PROXY) {
+      url = `${CORS_PROXY}${encodeURIComponent(url)}`;
+    }
+
+    console.log(`Fetching from: ${url}`);
+
     // Fetch data from MediaStack API with timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-    
+
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
         'Accept': 'application/json'
       }
     });
-    
+
     clearTimeout(timeoutId);
-    
+
     if (!response.ok) {
       throw new Error(`MediaStack API request failed with status ${response.status}`);
     }
-    
+
     const data: MediaStackResponse = await response.json();
-    
+
     // Transform MediaStack articles to our app format
     return data.data.map(article => transformMediaStackArticle(article));
   } catch (error) {
@@ -111,13 +122,13 @@ export const fetchMediaStackArticles = async (
 const transformMediaStackArticle = (article: MediaStackArticle): NewsArticle => {
   // Map MediaStack category to our app category
   const category = categoryMapping[article.category] || 'world';
-  
+
   // Generate a summary from the description
   const summary = article.description || 'No description available';
-  
+
   // Use the article image if available, otherwise use a fallback image
   const imageUrl = article.image || categoryImages[category] || categoryImages.world;
-  
+
   return {
     id: uuidv4(),
     title: article.title,
@@ -145,27 +156,34 @@ export const searchMediaStackArticles = async (
 ): Promise<NewsArticle[]> => {
   try {
     // Build the API URL with parameters
-    const url = `${MEDIASTACK_BASE_URL}/news?access_key=${MEDIASTACK_API_KEY}&languages=en&limit=${limit}&keywords=${encodeURIComponent(query)}`;
-    
+    let url = `${MEDIASTACK_BASE_URL}/news?access_key=${MEDIASTACK_API_KEY}&languages=en&limit=${limit}&keywords=${encodeURIComponent(query)}`;
+
+    // Add CORS proxy if needed
+    if (USE_CORS_PROXY) {
+      url = `${CORS_PROXY}${encodeURIComponent(url)}`;
+    }
+
+    console.log(`Searching from: ${url}`);
+
     // Fetch data from MediaStack API with timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-    
+
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
         'Accept': 'application/json'
       }
     });
-    
+
     clearTimeout(timeoutId);
-    
+
     if (!response.ok) {
       throw new Error(`MediaStack API request failed with status ${response.status}`);
     }
-    
+
     const data: MediaStackResponse = await response.json();
-    
+
     // Transform MediaStack articles to our app format
     return data.data.map(article => transformMediaStackArticle(article));
   } catch (error) {
